@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CSAddressBook.Data;
 using CSAddressBook.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CSAddressBook.Controllers
 {
+    [Authorize]
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
