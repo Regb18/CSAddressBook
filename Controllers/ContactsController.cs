@@ -32,8 +32,8 @@ namespace CSAddressBook.Controllers
             
             List<Contact> contacts = new List<Contact>();
             
-            // to get contacts where the app user id equals the user id we have, anytime we talk to the database use ToListAsync
-            contacts = await _context.Contacts.Where(c => c.AppUserId == userId).ToListAsync();
+            // to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+            contacts = await _context.Contacts.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
 
             return View(contacts);
         }
@@ -85,6 +85,7 @@ namespace CSAddressBook.Controllers
                 }
 
                 contact.Created = DateTime.UtcNow;
+
                 _context.Add(contact);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
