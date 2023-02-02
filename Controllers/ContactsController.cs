@@ -41,9 +41,11 @@ namespace CSAddressBook.Controllers
 
             // List has IEnumerable implemented as an interface
             List<Contact> contacts = new List<Contact>();
-            
+
+           
+            // Eager Load my data -use .Include() to ask for Categories- categories weren't showing up so we have to ask for it
             // query to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
-            contacts = await _context.Contacts.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
+            contacts = await _context.Contacts.Where(c => c.AppUserId == userId).Include(c => c.Categories).ToListAsync();
 
             return View(contacts);
         }
@@ -91,7 +93,7 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageFile,AppUserId")] Contact contact)
+        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageFile,AppUserId")] Contact contact, IEnumerable<int> selected)
         {
             ModelState.Remove("AppUserId");
 
@@ -110,9 +112,23 @@ namespace CSAddressBook.Controllers
                 {
                     contact.BirthDate = DateTime.SpecifyKind(contact.BirthDate.Value, DateTimeKind.Utc);
                 }
-
+ 
                 _context.Add(contact);
                 await _context.SaveChangesAsync();
+
+                // Loop over selected categoryIds to find the category entities in the database 
+                foreach (int categoryId in selected)
+                {
+                    Category? category = await _context.Categories.FindAsync(categoryId);
+
+                    // entity framework allows us to get the contact Id even though it doesn't have one assigned yet
+                    // getting contacts tied to category, have to do this after we've saved the contact to the database so we can grab the Id
+                    category!.Contacts.Add(contact);
+                }
+                // save category changes to the database
+                await _context.SaveChangesAsync();
+
+
                 return RedirectToAction(nameof(Index));
             }
             
@@ -123,6 +139,12 @@ namespace CSAddressBook.Controllers
         // GET: Contacts/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
+            string? userId = _userManager.GetUserId(User);
+
+            IEnumerable<Category> categoriesList = await _context.Categories
+                                                     .Where(c => c.AppUserId == userId)
+                                                     .ToListAsync();
+
             if (id == null || _context.Contacts == null)
             {
                 return NotFound();
@@ -133,6 +155,7 @@ namespace CSAddressBook.Controllers
             {
                 return NotFound();
             }
+            ViewData["CategoryList"] = new MultiSelectList(categoriesList, "Id", "Name");
             ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>());
             return View(contact);
         }
@@ -142,7 +165,7 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,ImageFile,AppUserId")] Contact contact)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,ImageFile,AppUserId")] Contact contact, IEnumerable<int> selected)
         {
 
             if (id != contact.Id)
@@ -173,6 +196,19 @@ namespace CSAddressBook.Controllers
 
                     _context.Update(contact);
                     await _context.SaveChangesAsync();
+
+                    // TODO:
+                    // Add use of the AddressBookService
+                    //
+
+                    //foreach (int categoryId in selected)
+                    //{
+                    //    Category? category = await _context.Categories.FindAsync(categoryId);
+                       
+                    //    category!.Contacts.Add(contact);
+                    //}
+
+                    //await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
