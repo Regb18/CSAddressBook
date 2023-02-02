@@ -10,19 +10,28 @@ using CSAddressBook.Models;
 using CSAddressBook.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using CSAddressBook.Services.Interfaces;
 
 namespace CSAddressBook.Controllers
 {
     [Authorize]
     public class ContactsController : Controller
     {
+
+        // Dependency Injection
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IImageService _imageService;
 
-        public ContactsController(ApplicationDbContext context, UserManager<AppUser> userManager)
+        // constructor builds the blueprint and gives you an object, the controller is a constructor
+        public ContactsController(ApplicationDbContext context, 
+                                  UserManager<AppUser> userManager, 
+                                  IImageService imageService)
         {
             _context = context;
             _userManager = userManager;
+            _imageService = imageService;
+
         }
 
         // GET: Contacts
@@ -71,20 +80,25 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,AppUserId")] Contact contact)
+        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageFile,AppUserId")] Contact contact)
         {
             ModelState.Remove("AppUserId");
 
             if (ModelState.IsValid)
             {
                 contact.AppUserId = _userManager.GetUserId(User);
+                contact.Created = DateTime.UtcNow;
+
+                if(contact.ImageFile != null)
+                {
+                    contact.ImageData = await _imageService.ConvertFileToByteArrayAsync(contact.ImageFile);
+                    contact.ImageType = contact.ImageFile.ContentType;
+                }
 
                 if(contact.BirthDate != null)
                 {
                     contact.BirthDate = DateTime.SpecifyKind(contact.BirthDate.Value, DateTimeKind.Utc);
                 }
-
-                contact.Created = DateTime.UtcNow;
 
                 _context.Add(contact);
                 await _context.SaveChangesAsync();
@@ -108,7 +122,7 @@ namespace CSAddressBook.Controllers
             {
                 return NotFound();
             }
-            ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id", contact.AppUserId);
+            ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>());
             return View(contact);
         }
 
@@ -117,8 +131,9 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,AppUserId")] Contact contact)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,ImageFile,AppUserId")] Contact contact)
         {
+
             if (id != contact.Id)
             {
                 return NotFound();
@@ -128,6 +143,23 @@ namespace CSAddressBook.Controllers
             {
                 try
                 {
+                    // Reformat created date
+                    contact.Created = DateTime.SpecifyKind(contact.Created, DateTimeKind.Utc);
+
+                    // Check if Image was Updated
+                    if (contact.ImageFile != null)
+                    {
+                        contact.ImageData = await _imageService.ConvertFileToByteArrayAsync(contact.ImageFile);
+                        contact.ImageType = contact.ImageFile.ContentType;
+                    }
+
+                    // reformat Birth Date
+                    if (contact.BirthDate != null)
+                    {
+                        contact.BirthDate = DateTime.SpecifyKind(contact.BirthDate.Value, DateTimeKind.Utc);
+                    }
+
+
                     _context.Update(contact);
                     await _context.SaveChangesAsync();
                 }
@@ -144,7 +176,7 @@ namespace CSAddressBook.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id", contact.AppUserId);
+            ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>());
             return View(contact);
         }
 

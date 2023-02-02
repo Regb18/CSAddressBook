@@ -1,5 +1,9 @@
 ﻿@model IEnumerable<CSAddressBook.Models.Contact>
 
+@using CSAddressBook.Services.Interfaces;
+
+@inject IImageService _ImageService
+
 @{
     ViewData["Title"] = "Index";
 }
@@ -46,13 +50,7 @@
                 @Html.DisplayNameFor(model => model.Created)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.ImageData)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ImageType)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AppUser)
+                Image
             </th>
             <th></th>
         </tr>
@@ -94,13 +92,7 @@
                 @Html.DisplayFor(modelItem => item.Created)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.ImageData)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ImageType)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.AppUser.Id)
+                <img src="@_ImageService.ConvertByteArrayToFile(item.ImageData!, item.ImageType!)" style="height:120px;width:120px" />
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
