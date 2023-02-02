@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using CSAddressBook.Data;
 using CSAddressBook.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace CSAddressBook.Controllers
 {
@@ -15,17 +16,28 @@ namespace CSAddressBook.Controllers
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<AppUser> _userManager;
 
-        public CategoriesController(ApplicationDbContext context)
+        public CategoriesController(ApplicationDbContext context, UserManager<AppUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Categories
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Categories.Include(c => c.AppUser);
-            return View(await applicationDbContext.ToListAsync());
+            string userId = _userManager.GetUserId(User)!;
+
+            List<Category> categories = new List<Category>();
+
+            // to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+            categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
+
+            return View(categories);
+
+            //var applicationDbContext = _context.Categories.Include(c => c.AppUser);
+            //return View(await applicationDbContext.ToListAsync());
         }
 
         // GET: Categories/Details/5
@@ -50,7 +62,7 @@ namespace CSAddressBook.Controllers
         // GET: Categories/Create
         public IActionResult Create()
         {
-            ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id");
+            //ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
         }
 
@@ -61,13 +73,18 @@ namespace CSAddressBook.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,AppUserId")] Category category)
         {
+
+            ModelState.Remove("AppUserId");
+
             if (ModelState.IsValid)
             {
+                category.AppUserId = _userManager.GetUserId(User);
+
                 _context.Add(category);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id", category.AppUserId);
+            //ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id", category.AppUserId);
             return View(category);
         }
 
