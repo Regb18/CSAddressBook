@@ -38,10 +38,11 @@ namespace CSAddressBook.Controllers
         public async Task<IActionResult> Index()
         {
             string userId = _userManager.GetUserId(User)!;
-            
+
+            // List has IEnumerable implemented as an interface
             List<Contact> contacts = new List<Contact>();
             
-            // to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+            // query to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
             contacts = await _context.Contacts.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
 
             return View(contacts);
@@ -67,9 +68,19 @@ namespace CSAddressBook.Controllers
         }
 
         // GET: Contacts/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            // ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id");
+
+            // Query and present list of Categories for logged in user
+            string? userId = _userManager.GetUserId(User);
+
+            IEnumerable<Category> categoriesList = await _context.Categories
+                                                                 .Where(c => c.AppUserId == userId)
+                                                                 .ToListAsync();
+
+            // 3rd parameter is what we want to see in the list - dataTextField
+            // 2nd parameter is what I want to get when I select multiple of those names
+            ViewData["CategoryList"] = new MultiSelectList(categoriesList, "Id", "Name");
 
             ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>()); 
             return View();

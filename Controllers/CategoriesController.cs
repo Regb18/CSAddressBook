@@ -29,15 +29,16 @@ namespace CSAddressBook.Controllers
         {
             string userId = _userManager.GetUserId(User)!;
 
+
+            // List has IEnumerable implemented as an interface
             List<Category> categories = new List<Category>();
 
-            // to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+            // to get categories where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+            // _context talks to the database to get everything from the Categories table
+            // Where is a lamda expression - "use c to go into Categories table to find AppUserId fields that equal userId
             categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
 
             return View(categories);
-
-            //var applicationDbContext = _context.Categories.Include(c => c.AppUser);
-            //return View(await applicationDbContext.ToListAsync());
         }
 
         // GET: Categories/Details/5
@@ -62,7 +63,6 @@ namespace CSAddressBook.Controllers
         // GET: Categories/Create
         public IActionResult Create()
         {
-            //ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
         }
 
