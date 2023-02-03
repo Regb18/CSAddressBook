@@ -79,9 +79,26 @@ namespace CSAddressBook.Services
             }
         }
 
-        public Task RemoveAllContactCategoriesAsync(int contactId)
+        public async Task RemoveAllContactCategoriesAsync(int contactId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // c represents an individual contact record in the database
+                Contact? contact = await _context.Contacts
+                                                 .Include(c => c.Categories)
+                                                 .FirstOrDefaultAsync(c => c.Id == contactId);
+
+                // we can do this because we used an ICollection
+                contact!.Categories.Clear();
+                //
+                _context.Update(contact);
+                await _context.SaveChangesAsync();
+
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

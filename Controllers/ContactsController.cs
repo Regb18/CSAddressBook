@@ -132,23 +132,31 @@ namespace CSAddressBook.Controllers
         // GET: Contacts/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            string? userId = _userManager.GetUserId(User);
-
-            IEnumerable<Category> categoriesList = await _context.Categories
-                                                     .Where(c => c.AppUserId == userId)
-                                                     .ToListAsync();
-
             if (id == null || _context.Contacts == null)
             {
                 return NotFound();
             }
 
-            var contact = await _context.Contacts.FindAsync(id);
+            var contact = await _context.Contacts
+                                        .Include(c => c.Categories)
+                                        .FirstOrDefaultAsync(c => c.Id == id);
+
+            // Query and present the list of Categories for the logged in user
+            string? userId = _userManager.GetUserId(User);
+
+            IEnumerable<Category> categoriesList = await _context.Categories
+                                                                 .Where(c => c.AppUserId == userId)
+                                                                 .ToListAsync();
+
+            IEnumerable<int> currentCategories = contact!.Categories.Select(c => c.Id);
+
+
+            ViewData["CategoryList"] = new MultiSelectList(categoriesList, "Id", "Name", currentCategories);
+            
             if (contact == null)
             {
                 return NotFound();
             }
-            ViewData["CategoryList"] = new MultiSelectList(categoriesList, "Id", "Name");
             ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>());
             return View(contact);
         }
@@ -192,23 +200,17 @@ namespace CSAddressBook.Controllers
 
                     // TODO:
                     // Add use of the AddressBookService
-                    //
+                    // DONE!
 
+                    if(selected != null)
+                    {
                     // 1. Remove Contact's categories
-                    //
+                    await _addressBookService.RemoveAllContactCategoriesAsync(contact.Id);
+
                     // 2. Add selected categories to the contact
-
-
-
-
-                    //foreach (int categoryId in selected)
-                    //{
-                    //    Category? category = await _context.Categories.FindAsync(categoryId);
-
-                    //    category!.Contacts.Add(contact);
-                    //}
-
-                    //await _context.SaveChangesAsync();
+                    await _addressBookService.AddContactToCategoriesAsync(selected, contact.Id);
+                    // "abstraction layer" is the set of services we have ex. _addressBookService
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
