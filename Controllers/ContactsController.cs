@@ -22,15 +22,18 @@ namespace CSAddressBook.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
         private readonly IImageService _imageService;
+        private readonly IAddressBookService _addressBookService;
 
         // constructor builds the blueprint and gives you an object, the controller is a constructor
         public ContactsController(ApplicationDbContext context, 
                                   UserManager<AppUser> userManager, 
-                                  IImageService imageService)
+                                  IImageService imageService,
+                                  IAddressBookService addressBookService)
         {
             _context = context;
             _userManager = userManager;
             _imageService = imageService;
+            _addressBookService = addressBookService;
 
         }
 
@@ -116,18 +119,8 @@ namespace CSAddressBook.Controllers
                 _context.Add(contact);
                 await _context.SaveChangesAsync();
 
-                // Loop over selected categoryIds to find the category entities in the database 
-                foreach (int categoryId in selected)
-                {
-                    Category? category = await _context.Categories.FindAsync(categoryId);
-
-                    // entity framework allows us to get the contact Id even though it doesn't have one assigned yet
-                    // getting contacts tied to category, have to do this after we've saved the contact to the database so we can grab the Id
-                    category!.Contacts.Add(contact);
-                }
-                // save category changes to the database
-                await _context.SaveChangesAsync();
-
+                // TODO: Add Service call
+                await _addressBookService.AddContactToCategoriesAsync(selected, contact.Id);
 
                 return RedirectToAction(nameof(Index));
             }
@@ -201,10 +194,17 @@ namespace CSAddressBook.Controllers
                     // Add use of the AddressBookService
                     //
 
+                    // 1. Remove Contact's categories
+                    //
+                    // 2. Add selected categories to the contact
+
+
+
+
                     //foreach (int categoryId in selected)
                     //{
                     //    Category? category = await _context.Categories.FindAsync(categoryId);
-                       
+
                     //    category!.Contacts.Add(contact);
                     //}
 
