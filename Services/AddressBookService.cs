@@ -100,5 +100,58 @@ namespace CSAddressBook.Services
                 throw;
             }
         }
+
+
+        // Category Stuff - Testing
+        public async Task AddCategoryToContactsAsync(IEnumerable<int> contacts, int categoryId)
+        {
+            try
+            {
+                Category? category = await _context.Categories
+                                                 .Include(c => c.Contacts) // Eager Load
+                                                 .FirstOrDefaultAsync(c => c.Id == categoryId);
+
+                foreach (int contactId in contacts)
+                {
+                    Contact? contact = await _context.Contacts.FindAsync(contactId);
+
+                    if (contact != null && category != null)
+                    {
+                        category.Contacts.Add(contact);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+        }
+
+        public async Task RemoveAllCategoryContactsAsync(int categoryId)
+        {
+            try
+            {
+                // c represents an individual contact record in the database
+                Category? category = await _context.Categories
+                                                 .Include(c => c.Contacts)
+                                                 .FirstOrDefaultAsync(c => c.Id == categoryId);
+
+                // we can do this because we used an ICollection
+                category!.Contacts.Clear();
+                //
+                _context.Update(category);
+                await _context.SaveChangesAsync();
+
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

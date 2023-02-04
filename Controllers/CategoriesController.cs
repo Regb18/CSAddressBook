@@ -9,6 +9,7 @@ using CSAddressBook.Data;
 using CSAddressBook.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using CSAddressBook.Services.Interfaces;
 
 namespace CSAddressBook.Controllers
 {
@@ -17,11 +18,13 @@ namespace CSAddressBook.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IAddressBookService _addressBookService;
 
-        public CategoriesController(ApplicationDbContext context, UserManager<AppUser> userManager)
+        public CategoriesController(ApplicationDbContext context, UserManager<AppUser> userManager, IAddressBookService addressBookService)
         {
             _context = context;
             _userManager = userManager;
+            _addressBookService = addressBookService;
         }
 
         // GET: Categories
@@ -61,8 +64,19 @@ namespace CSAddressBook.Controllers
         }
 
         // GET: Categories/Create
-        public IActionResult Create()
+        public async Task<IActionResult> CreateAsync()
         {
+            string? userId = _userManager.GetUserId(User);
+
+            // Query and present list of Contacts for logged in user
+            IEnumerable<Contact> contactsList = await _context.Contacts
+                                                                 .Where(c => c.AppUserId == userId)
+                                                                 .ToListAsync();
+
+            // 3rd parameter is what we want to see in the list - dataTextField
+            // 2nd parameter is what I want to get when I select multiple of those names
+            ViewData["ContactList"] = new MultiSelectList(contactsList, "Id", "FullName");
+
             return View();
         }
 
@@ -71,7 +85,7 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,AppUserId")] Category category)
+        public async Task<IActionResult> Create([Bind("Id,Name,AppUserId")] Category category, IEnumerable<int> selected)
         {
 
             ModelState.Remove("AppUserId");
@@ -82,6 +96,10 @@ namespace CSAddressBook.Controllers
 
                 _context.Add(category);
                 await _context.SaveChangesAsync();
+
+                // call Service
+                await _addressBookService.AddCategoryToContactsAsync(selected, category.Id);
+
                 return RedirectToAction(nameof(Index));
             }
             //ViewData["AppUserId"] = new SelectList(_context.Users, "Id", "Id", category.AppUserId);
@@ -95,8 +113,21 @@ namespace CSAddressBook.Controllers
             {
                 return NotFound();
             }
+            var category = await _context.Categories
+                                         .Include(c => c.Contacts)
+                                         .FirstOrDefaultAsync(c => c.Id == id);
 
-            var category = await _context.Categories.FindAsync(id);
+
+            string? userId = _userManager.GetUserId(User);
+
+            IEnumerable<Contact> contactsList = await _context.Contacts
+                                                                 .Where(c => c.AppUserId == userId)
+                                                                 .ToListAsync();
+
+            IEnumerable<int> currentContacts = category!.Contacts.Select(c => c.Id);
+
+            ViewData["ContactList"] = new MultiSelectList(contactsList, "Id", "FullName", currentContacts);
+
             if (category == null)
             {
                 return NotFound();
@@ -110,7 +141,7 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,AppUserId")] Category category)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,AppUserId")] Category category, IEnumerable<int> selected)
         {
             if (id != category.Id)
             {
@@ -123,6 +154,19 @@ namespace CSAddressBook.Controllers
                 {
                     _context.Update(category);
                     await _context.SaveChangesAsync();
+
+                    //
+                    //TODO: Add Services
+                    //DONE!
+
+                    if (selected != null)
+                    {
+                        // 1. Remove Category's contacts
+                        await _addressBookService.RemoveAllCategoryContactsAsync(category.Id);
+
+                        // 2. Add selected contacts to the category
+                        await _addressBookService.AddCategoryToContactsAsync(selected, category.Id);
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {

@@ -1,4 +1,5 @@
 ﻿using CSAddressBook.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CSAddressBook.Services.Interfaces
 {
@@ -14,5 +15,10 @@ namespace CSAddressBook.Services.Interfaces
         public Task<bool> IsContactInCategory(int categoryId, int contactId);
 
         public Task RemoveAllContactCategoriesAsync(int contactId);
+
+        // Category Stuff - Testing
+        public Task AddCategoryToContactsAsync(IEnumerable<int> contacts, int categoryId);
+
+        public Task RemoveAllCategoryContactsAsync(int categoryId);
     }
 }

@@ -76,9 +76,9 @@ namespace CSAddressBook.Controllers
         public async Task<IActionResult> Create()
         {
 
-            // Query and present list of Categories for logged in user
             string? userId = _userManager.GetUserId(User);
 
+            // Query and present list of Categories for logged in user
             IEnumerable<Category> categoriesList = await _context.Categories
                                                                  .Where(c => c.AppUserId == userId)
                                                                  .ToListAsync();
