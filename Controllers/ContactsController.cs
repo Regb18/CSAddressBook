@@ -64,6 +64,7 @@ namespace CSAddressBook.Controllers
             var contact = await _context.Contacts
                 .Include(c => c.AppUser)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (contact == null)
             {
                 return NotFound();

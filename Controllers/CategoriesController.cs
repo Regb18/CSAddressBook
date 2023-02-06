@@ -47,14 +47,20 @@ namespace CSAddressBook.Controllers
         // GET: Categories/Details/5
         public async Task<IActionResult> Details(int? id)
         {
+            //string userId = _userManager.GetUserId(User)!;
+            //List<Category> categories = new List<Category>();
+            //categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.Contacts).ToListAsync();
+
+
             if (id == null || _context.Categories == null)
             {
                 return NotFound();
             }
 
             var category = await _context.Categories
-                .Include(c => c.AppUser)
+                .Include(c => c.Contacts)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (category == null)
             {
                 return NotFound();
