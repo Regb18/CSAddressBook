@@ -15,7 +15,7 @@ namespace CSAddressBook.Services
             _context = context;
         }
 
-        public async Task AddContactToCategoriesAsync(IEnumerable<int> categories, int contactId)
+        public async Task AddContactToCategoriesAsync(IEnumerable<int> categoryIds, int contactId)
         {
             try
             {
@@ -23,12 +23,13 @@ namespace CSAddressBook.Services
                                                  .Include(c => c.Categories) // Eager Load
                                                  .FirstOrDefaultAsync(c => c.Id == contactId);
 
-                foreach (int categoryId in categories)
+                foreach (int categoryId in categoryIds)
                 {
                     Category? category = await _context.Categories.FindAsync(categoryId);
 
                     if(contact != null && category != null)
                     {
+                        // Can use add because we're working with objects
                         contact.Categories.Add(category);
                     } 
                 }

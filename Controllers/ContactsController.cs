@@ -53,6 +53,27 @@ namespace CSAddressBook.Controllers
             return View(contacts);
         }
 
+        // GET: EmailContact
+
+        public async Task<IActionResult> EmailContact(int? id)
+        {
+            string? userId = _userManager.GetUserId(User);
+
+            // same as doing a Where clause first to filter and then doing FirstOrDefaultAsync. But that's more complex than necessary
+            Contact? contact = await _context.Contacts.FirstOrDefaultAsync(c => c.Id == id && c.AppUserId == userId);
+
+
+            return View();
+        }
+
+        // POST: EmailContact
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EmailContact(Contact contact)
+        {
+            return View();
+        }
+
         // GET: Contacts/Details/5
         public async Task<IActionResult> Details(int? id)
         {
