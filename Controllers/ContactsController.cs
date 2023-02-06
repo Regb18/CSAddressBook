@@ -11,6 +11,9 @@ using CSAddressBook.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using CSAddressBook.Services.Interfaces;
+using CSAddressBook.Models.ViewModels;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using CSAddressBook.Services;
 
 namespace CSAddressBook.Controllers
 {
@@ -23,23 +26,29 @@ namespace CSAddressBook.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly IImageService _imageService;
         private readonly IAddressBookService _addressBookService;
+        private readonly IEmailSender _emailService;
 
         // constructor builds the blueprint and gives you an object, the controller is a constructor
         public ContactsController(ApplicationDbContext context, 
                                   UserManager<AppUser> userManager, 
                                   IImageService imageService,
-                                  IAddressBookService addressBookService)
+                                  IAddressBookService addressBookService,
+                                  IEmailSender emailService)
         {
             _context = context;
             _userManager = userManager;
             _imageService = imageService;
             _addressBookService = addressBookService;
+            _emailService = emailService;
 
         }
 
         // GET: Contacts
-        public async Task<IActionResult> Index()
+                                // Declaration of an optional parameter in a method because we set it equal to null
+        public async Task<IActionResult> Index(string? swalMessage = null)
         {
+            ViewData["SwalMessage"] = swalMessage;
+
             string userId = _userManager.GetUserId(User)!;
 
             // List has IEnumerable implemented as an interface
@@ -57,21 +66,76 @@ namespace CSAddressBook.Controllers
 
         public async Task<IActionResult> EmailContact(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             string? userId = _userManager.GetUserId(User);
 
             // same as doing a Where clause first to filter and then doing FirstOrDefaultAsync. But that's more complex than necessary
             Contact? contact = await _context.Contacts.FirstOrDefaultAsync(c => c.Id == id && c.AppUserId == userId);
 
 
-            return View();
+            if (contact == null)
+            {
+                return NotFound();
+            }
+
+
+            // Instantiate EmailData
+            EmailData emailData = new EmailData()
+            {
+                EmailAddress = contact!.Email,
+                FirstName = contact.FirstName,
+                LastName = contact.LastName,
+            };
+
+            // Instantiate the ViewModel
+            EmailContactView viewModel = new EmailContactView()
+            {
+                Contact = contact,
+                EmailData = emailData
+            };
+
+            // Need to Make Sure to Return the viewModel we want to see
+            return View(viewModel);
         }
 
         // POST: EmailContact
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EmailContact(Contact contact)
+        public async Task<IActionResult> EmailContact(EmailContactView viewModel)
         {
-            return View();
+            // IsValid = All required fields are checked
+            if (ModelState.IsValid)
+            {
+                string? swalMessage = string.Empty;
+
+                try
+                {
+                    await _emailService.SendEmailAsync(viewModel.EmailData!.EmailAddress!,
+                                                       viewModel.EmailData.EmailSubject!,
+                                                       viewModel.EmailData.EmailBody!);
+
+                    swalMessage = "Your Email Has been Sent";
+
+                    // Takes us back to the index after we send an email
+                    // nameof makes it so that it has to reference something specific in our code instead of using a string that can be anything.
+                    // this is how we let rosalind do her thing ^
+                    return RedirectToAction(nameof(Index),new { swalMessage });
+                    // new is a route value that sends a parameter 
+                }
+                catch (Exception)
+                {
+                    swalMessage = "Error: Email Send Failed";
+                    return RedirectToAction(nameof(Index), new { swalMessage });
+                    throw;
+                }
+            }
+
+
+            return View(viewModel);
         }
 
         // GET: Contacts/Details/5

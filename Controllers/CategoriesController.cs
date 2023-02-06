@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using CSAddressBook.Services.Interfaces;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace CSAddressBook.Controllers
 {
@@ -20,17 +21,23 @@ namespace CSAddressBook.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
         private readonly IAddressBookService _addressBookService;
-
-        public CategoriesController(ApplicationDbContext context, UserManager<AppUser> userManager, IAddressBookService addressBookService)
+        private readonly IEmailSender _emailService;
+        public CategoriesController(ApplicationDbContext context, 
+                                    UserManager<AppUser> userManager, 
+                                    IAddressBookService addressBookService,
+                                    IEmailSender emailService)
         {
             _context = context;
             _userManager = userManager;
             _addressBookService = addressBookService;
+            _emailService = emailService;
         }
 
         // GET: Categories
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? swalMessage = null)
         {
+            ViewData["SwalMessage"] = swalMessage;
+
             string userId = _userManager.GetUserId(User)!;
 
 
@@ -40,10 +47,82 @@ namespace CSAddressBook.Controllers
             // to get categories where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
             // _context talks to the database to get everything from the Categories table
             // Where is a lamda expression - "use c to go into Categories table to find AppUserId fields that equal userId
-            categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.AppUser).ToListAsync();
+            categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.Contacts).ToListAsync();
 
             return View(categories);
         }
+
+        // GET: EmailCategory
+        public async Task<IActionResult> EmailCategory(int? id, string? swalMessage = null)
+        {
+            ViewData["SwalMessage"] = swalMessage;
+
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+
+
+            string? userId = _userManager.GetUserId(User);
+            Category? category = await _context.Categories
+                                               .Include(c => c.Contacts)
+                                               .FirstOrDefaultAsync(c => c.Id == id && c.AppUserId == userId);
+
+        
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+
+            // Looks at each contact in the category and grabs the emails, adds them to the list
+            List<string> emails = category!.Contacts.Select(c => c.Email).ToList()!;
+
+            EmailData emailData = new EmailData()
+            {
+                GroupName = category.Name,
+                // the semicolon separates each category name -- it is a delimiter
+                EmailAddress = string.Join(";", emails),
+                EmailSubject = $"Group Message: {category.Name}"
+            };
+
+
+            return View(emailData);
+        }
+
+        // POST: EmailCategory
+
+        // EmailCategoryView viewModel -- return View(viewModel)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EmailCategory(EmailData emailData)
+        {
+
+            if (ModelState.IsValid)
+            {
+                    string? swalMessage = string.Empty;
+                try
+                {
+                    await _emailService.SendEmailAsync(emailData.EmailAddress!,
+                                                       emailData.EmailSubject!,
+                                                       emailData.EmailBody!);
+
+                    swalMessage = "Your Email Has been Sent";
+                    return RedirectToAction(nameof(Index), new { swalMessage });
+                }
+                catch (Exception)
+                {
+                    swalMessage = "Error: Email Send Failed";
+                    return RedirectToAction(nameof(EmailCategory), new { swalMessage });
+                    throw;
+                }
+            }
+
+            return View(emailData);
+        }
+
+
 
         // GET: Categories/Details/5
         public async Task<IActionResult> Details(int? id)
