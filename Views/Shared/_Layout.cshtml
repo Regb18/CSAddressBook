@@ -56,6 +56,7 @@
             @RenderBody()
         </section>
     </div>
+
     <footer class="footer container-fluid">
         <div class="row align-items-center py-2">
             <div class="col">
@@ -77,6 +78,27 @@
         </div>
     </footer>
 
+    <script>
+        // This will be evaluated as C#
+        let message = '@(ViewBag.SwalMessage)';
+
+        if (!message.includes('Error') && message != '') {
+            Swal.fire({
+                backdrop: false,
+                icon: 'success',
+                title: message,
+                showConfirmButton: true
+            });
+        } else if (message.includes('Error')) {
+            Swal.fire({
+                backdrop: false,
+                icon: 'error',
+                title: 'Oops !',
+                text: message
+            });
+        }
+    </script>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
@@ -86,5 +108,7 @@
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+
 </body>
 </html>
