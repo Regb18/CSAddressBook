@@ -141,19 +141,18 @@ namespace CSAddressBook.Controllers
 
             string userId = _userManager.GetUserId(User)!;
 
-            // TEST: see if this works without the categories variable lines
 
-            List<Category> categories = new List<Category>();
-            categories = await _context.Categories.Include(c => c.Contacts).ToListAsync();
-
-            var category = await _context.Categories
-                                         .Include(c => c.AppUser).Where(c => c.AppUserId == userId)
-                                         .FirstOrDefaultAsync(m => m.Id == id);
+            //List<Category> categories = new List<Category>();
+            //categories = await _context.Categories.Include(c => c.Contacts).ToListAsync();
 
             //var category = await _context.Categories
-            //                             .Where(c => c.AppUserId == userId)
-            //                             .Include(c => c.Contacts)
+            //                             .Include(c => c.AppUser).Where(c => c.AppUserId == userId)
             //                             .FirstOrDefaultAsync(m => m.Id == id);
+
+            var category = await _context.Categories
+                                         .Where(c => c.AppUserId == userId)
+                                         .Include(c => c.Contacts)
+                                         .FirstOrDefaultAsync(m => m.Id == id);
 
 
 
