@@ -49,6 +49,8 @@ namespace CSAddressBook.Controllers
             // Where is a lamda expression - "use c to go into Categories table to find AppUserId fields that equal userId
             categories = await _context.Categories.Where(c => c.AppUserId == userId).Include(c => c.Contacts).ToListAsync();
 
+
+
             return View(categories);
         }
 
@@ -170,8 +172,8 @@ namespace CSAddressBook.Controllers
 
             // Query and present list of Contacts for logged in user
             IEnumerable<Contact> contactsList = await _context.Contacts
-                                                                 .Where(c => c.AppUserId == userId)
-                                                                 .ToListAsync();
+                                                              .Where(c => c.AppUserId == userId)
+                                                              .ToListAsync();
 
             // 3rd parameter is what we want to see in the list - dataTextField
             // 2nd parameter is what I want to get when I select multiple of those names

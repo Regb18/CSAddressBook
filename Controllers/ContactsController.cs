@@ -45,25 +45,83 @@ namespace CSAddressBook.Controllers
 
         // GET: Contacts
                                 // Declaration of an optional parameter in a method because we set it equal to null
-        public async Task<IActionResult> Index(string? swalMessage = null)
+        public async Task<IActionResult> Index(int? categoryId, string? swalMessage = null)
         {
             ViewData["SwalMessage"] = swalMessage;
 
             string userId = _userManager.GetUserId(User)!;
 
             // List has IEnumerable implemented as an interface
+            // TODO: Get the contacts from the AppUser
             List<Contact> contacts = new List<Contact>();
 
+            //Get the categories from AppUser based on whether they have chosen a category to "filter" by
+            List<Category> categories = await _context.Categories
+                                                      .Where(c => c.AppUserId == userId)
+                                                      .ToListAsync();
+
+            if (categoryId == null)
+            {
+                // Eager Load my data -use .Include() to ask for Categories- categories weren't showing up so we have to ask for it
+                // query to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
+                contacts = await _context.Contacts
+                                         .Where(c => c.AppUserId == userId)
+                                         .Include(c => c.Categories)
+                                         .ToListAsync();
+            }
+            else
+            {              // await in parentheses allows the thread to run
+                contacts = (await _context.Categories
+                                         .Include(c => c.Contacts)
+                                         .FirstOrDefaultAsync(c => c.AppUserId == userId && c.Id == categoryId))!
+                                         .Contacts.ToList();
+                                         // grabs the contacts from the single category we queried for
+            }
+
            
-            // Eager Load my data -use .Include() to ask for Categories- categories weren't showing up so we have to ask for it
-            // query to get contacts where the app user id equals the user id we have(filters the data), anytime we talk to the database use ToListAsync
-            contacts = await _context.Contacts.Where(c => c.AppUserId == userId).Include(c => c.Categories).ToListAsync();
+                                                               // categoryId shows which category is selected
+            ViewData["CategoryId"] = new SelectList(categories, "Id", "Name", categoryId);
 
             return View(contacts);
         }
 
-        // GET: EmailContact
+        // POST: SearchContacts
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SearchContacts(string? searchString)
+        {
+            string? userId = _userManager.GetUserId(User)!;
 
+            List<Contact> contacts = new List<Contact>();
+
+
+            AppUser? appUser = await _context.Users.Include(u => u.Contacts)
+                                                      .ThenInclude(c => c.Categories)
+                                                   .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (string.IsNullOrEmpty(searchString))
+            {
+                contacts = appUser!.Contacts
+                                   .OrderBy(c => c.LastName)
+                                   .ThenBy(c => c.FirstName)
+                                   .ToList();
+            }
+            else
+            {
+                contacts = appUser!.Contacts
+                                    .Where(c => c.FullName!.ToLower().Contains(searchString.ToLower()))
+                                    .OrderBy(c => c.LastName)
+                                    .ThenBy(c => c.FirstName)
+                                    .ToList();
+            }
+
+            // Need this so we still have our category filter active
+            ViewData["CategoryId"] = new SelectList(appUser.Categories, "Id", "Name");
+            return View(nameof(Index),contacts);
+        }
+
+
+        // GET: EmailContact
         public async Task<IActionResult> EmailContact(int? id)
         {
             if (id == null)

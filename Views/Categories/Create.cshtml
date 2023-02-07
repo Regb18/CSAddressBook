@@ -1,5 +1,8 @@
 ﻿@model CSAddressBook.Models.Category
 
+@using CSAddressBook.Services.Interfaces;
+
+@inject IImageService _ImageService
 @{
     ViewData["Title"] = "Create";
 }
@@ -10,7 +13,7 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Create" method="post">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
@@ -21,6 +24,60 @@
                 <label asp-for="Contacts" class="control-label"></label>
                 <select class="form-control" asp-items="ViewBag.ContactList" name="Selected" multiple></select>
             </div>
+
+@*            <div class="wrapper">
+                <div class="title">
+                    Custom Select Box
+                </div>
+                <div class="select_wrap">
+                    <ul class="default_option">
+                        <li>
+                            <div class="option pizza">
+                                <div class="icon"></div>
+                                <p>Pizzas</p>
+                            </div>
+                        </li>
+                    </ul>
+                    <ul class="select_ul">
+                        <li>
+                            <div class="option pizza">
+                                <div class="icon"></div>
+                                <p>Pizzas</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="option burger">
+                                <div class="icon"></div>
+                                <p>Burget</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="option ice">
+                                <div class="icon"></div>
+                                <p>Ice Cream</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="option fries">
+                                <div class="icon"></div>
+                                <p>Fried Potatoes</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>*@
+
+@*            <ul class="select_ul">
+                @foreach (Contact item in Model.Contacts)
+                {
+                    <li>
+                        <img src="@_ImageService.ConvertByteArrayToFile(item.ImageData!, item.ImageType!)" style="height:120px;width:120px" />
+                        Image stuff
+                        item.FullName
+                    </li>
+                }
+            </ul>*@
+
 
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
@@ -34,5 +91,25 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+    $(".default_option").click(function () {
+        $(this).parent().toggleClass("active");
+    })
+
+    $(".select_ul li").click(function () {
+        var currentele = $(this).html();
+        $(".default_option li").html(currentele);
+        $(this).parents(".select_wrap").removeClass("active");
+    })
+    </script>
+    
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
+
+
+
+
+
