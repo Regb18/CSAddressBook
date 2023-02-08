@@ -21,6 +21,7 @@
         <input type="hidden" asp-for="Created" />
         <input type="hidden" asp-for="ImageType" />
         <input type="hidden" asp-for="ImageData" />
+        <input type="hidden" name="returnView" value="@ViewBag.returnView" />
 
         <div class="row g-3 p-2">
             <div class="col-12 col-lg-4">
@@ -107,3 +108,4 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }
+                        

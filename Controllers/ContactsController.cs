@@ -310,7 +310,7 @@ namespace CSAddressBook.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,ImageFile,AppUserId")] Contact contact, IEnumerable<int> selected)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,BirthDate,Address1,Address2,City,States,ZipCode,Email,PhoneNumber,Created,ImageData,ImageType,ImageFile,AppUserId")] Contact contact, IEnumerable<int> selected, string? returnView = null)
         {
 
             if (id != contact.Id)
@@ -369,6 +369,8 @@ namespace CSAddressBook.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewData["returnView"] = returnView;
             ViewData["StatesList"] = new SelectList(Enum.GetValues(typeof(States)).Cast<States>());
             return View(contact);
         }

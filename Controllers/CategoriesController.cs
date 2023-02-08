@@ -289,13 +289,17 @@ namespace CSAddressBook.Controllers
         // GET: Categories/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
+
+            string userId = _userManager.GetUserId(User)!;
+
             if (id == null || _context.Categories == null)
             {
                 return NotFound();
             }
 
             var category = await _context.Categories
-                .Include(c => c.AppUser)
+                .Where(c => c.AppUserId == userId)
+                .Include(c => c.Contacts)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (category == null)
             {
