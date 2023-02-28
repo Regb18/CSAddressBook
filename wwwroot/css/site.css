@@ -164,13 +164,13 @@ main {
 }
 
 .socialicons {
-    color: var(--cf-primaryColorDark);
+    color: #831619;
     opacity: .9;
     font-size: 2rem;
 }
 
     .socialicons:hover {
-        color: var(--cf-primaryColor);
+        color: #9f1a1d;
         opacity: 1;
         cursor: pointer;
     }
